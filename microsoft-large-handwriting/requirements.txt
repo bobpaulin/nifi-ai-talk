@@ -1,0 +1,7 @@
+pillow
+tensorflow
+transformers @ git+https://github.com/huggingface/transformers.git
+-i https://download.pytorch.org/whl/cpu
+pytorch
+torchvision
+torchaudio
