@@ -1,0 +1,7 @@
+Pillow==9.0.1
+setuptools==69.2.0
+transformers @ git+https://github.com/huggingface/transformers.git@94c765380c91838cd0ccb85fb0df71297f32c43c
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.1.1+cpu
+torchvision==0.16.1+cpu
+torchaudio==2.1.1+cpu
