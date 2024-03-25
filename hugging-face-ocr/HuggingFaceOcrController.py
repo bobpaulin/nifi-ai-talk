@@ -26,6 +26,7 @@ class HuggingFaceOcrController(FlowFileTransform):
             name="output-attribute",
             description="Attribute to write Model Output To",
             required = False,
+            default_value = "",
             validators = [StandardValidators.NON_EMPTY_VALIDATOR]
         )
         
@@ -50,8 +51,8 @@ class HuggingFaceOcrController(FlowFileTransform):
         
         myAttributes = {"mime.type": "text/plain", "filename": fileNameAtt}
         
-        if not outputAttributeName:
-          myAttributes[outputAttributeName] = str.encode(generated_text)
+        if outputAttributeName != "":
+            myAttributes[outputAttributeName] = generated_text
 
         return FlowFileTransformResult(relationship = "success", contents = str.encode(generated_text), attributes=myAttributes)
 
