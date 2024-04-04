@@ -41,15 +41,15 @@ class HuggingFaceOcrController(FlowFileTransform):
     def transform(self, context, flowFile):
         
         outputAttributeName = context.getProperty(self.outputAttribute.name).getValue()
-        
-        fileNameAtt = flowFile.getAttribute("filename") + ".txt"
+        originalFileNameAtt = flowFile.getAttribute("filename")
+        fileNameAtt = originalFileNameAtt + ".txt"
 
         image = Image.open(io.BytesIO(flowFile.getContentsAsBytes())).convert("RGB")
         pixel_values = self.processor(images=image, return_tensors="pt").pixel_values
         generated_ids = self.model.generate(pixel_values)
         generated_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         
-        myAttributes = {"mime.type": "text/plain", "filename": fileNameAtt}
+        myAttributes = {"mime.type": "text/plain", "filename": fileNameAtt, "originalFilename": originalFileNameAtt}
         
         if outputAttributeName != "":
             myAttributes[outputAttributeName] = generated_text
