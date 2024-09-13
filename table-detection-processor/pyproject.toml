@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling", "hatch-datavolo-nar"]
+build-backend = "hatchling.build"
+
+[project]
+name = "table-detection-processor"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+keywords = []
+authors = [
+  { name = "Bob Paulin", email = "bob@bobpaulin.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "numpy==1.26.4",
+  "transformers==4.44.2",
+  "torch==2.4.1",
+  "timm==1.0.9",
+  "opencv-python==4.9.0.80",
+]
+
+[project.urls]
+Documentation = "https://github.com/Bob Paulin/table-detection-processor#readme"
+Issues = "https://github.com/Bob Paulin/table-detection-processor/issues"
+Source = "https://github.com/Bob Paulin/table-detection-processor"
+
+[tool.hatch.version]
+path = "src/table_detection_processor/__about__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/table_detection_processor tests}"
+
+[tool.coverage.run]
+source_pkgs = ["table_detection_processor", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/table_detection_processor/__about__.py",
+]
+
+[tool.coverage.paths]
+table_detection_processor = ["src/table_detection_processor", "*/table-detection-processor/src/table_detection_processor"]
+tests = ["tests", "*/table-detection-processor/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+[tool.hatch.build.targets.nar]
+packages = ["src/table_detection_processor"]
