@@ -6,6 +6,9 @@ import io
 import torch
 import cv2
 import numpy as np
+import json
+from typing import List, Tuple
+from coco import CocoDataset, Info, Image, License, Annotation, Category
 from transformers import TableTransformerForObjectDetection, AutoImageProcessor
 
 class TableDetectionProcessor(FlowFileTransform):
@@ -14,19 +17,27 @@ class TableDetectionProcessor(FlowFileTransform):
     class ProcessorDetails:
         version = '0.0.1-SNAPSHOT'
 
-    REL_ORIGINAL = Relationship(name="original", description="Original Image")
+    REL_COCO = Relationship(name="coco", description="Coco Data")
     REL_ANNOTATED = Relationship(name="annotated", description="Image Annotated")
     def __init__(self, **kwargs):
         # Build Property Descriptors
         self.pretrainedTableModelName = PropertyDescriptor(
-            name="table-model-name",
+            name="Table Model Name",
             description="Name of HuggingFace Table Model",
             required = True,
             default_value = "microsoft/table-transformer-structure-recognition-v1.1-all",
             validators = [StandardValidators.NON_EMPTY_VALIDATOR]
         )
         
-        self.descriptors = [self.pretrainedTableModelName]
+        self.outputType = PropertyDescriptor(
+            name="Output Type",
+            description="Output Type (Coco or Annotated Image)",
+            required = True,
+            allowable_values = ["coco", "annotations"],
+            default_value = "annotations",
+        )
+        
+        self.descriptors = [self.pretrainedTableModelName, self.outputType]
 
     def onScheduled(self, context):
         modelName = context.getProperty(self.pretrainedTableModelName.name).getValue()
@@ -44,7 +55,70 @@ class TableDetectionProcessor(FlowFileTransform):
             cv2.putText(img, text, (int(xmin), int(ymin + txt_size[1])), font, 0.4, c, thickness=1)
         res, img_out = cv2.imencode('.png', img)
         return img_out.tobytes()
-    
+    def build_coco(self, filename, labels, boxes):
+        info = Info(
+            year='2024',
+            version = '1.0',
+            description = 'A coco file',
+        )
+        images = [Image(
+            id=0,
+            file_name=filename,
+        )]
+        license  = License(
+            id=0,
+            name="Apache",
+        )
+        categories = [Category(
+            id=0,
+            name="table",
+            supercategory="table",
+        ),
+        Category(
+            id=1,
+            name="table column",
+            supercategory="table column",
+        ),
+        Category(
+            id=2,
+            name="table row",
+            supercategory="table row",
+        ),
+        Category(
+            id=3,
+            name="table column header",
+            supercategory="table column header",
+        ),
+        Category(
+            id=4,
+            name="table projected row header",
+            supercategory="table projected row header",
+        ),
+        Category(
+            id=5,
+            name="table spanning cell",
+            supercategory="table spanning cell",
+        ),
+        ]
+        annotations = []
+        for label, (xmin, ymin, xmax, ymax) in zip(labels.tolist(), boxes.tolist()):
+            segmentation = []
+            segmentation.append((int(xmin), int(ymin), int(xmax), int(ymin), int(xmax), int(ymax), int(xmin), int(ymax)))
+            annotations.append(Annotation(
+                id=len(annotations),
+                image_id=0,
+                category_id=label,
+                bbox=(int(xmin), int(ymin), int((xmax-xmin)), int((ymax-ymin))),
+                segmentation=segmentation
+            ))
+        # Create the dataset
+        return CocoDataset(  
+            info=info,
+            images=images,
+            licenses=[license],
+            categories=categories,
+            annotations=annotations
+        )
     def transform(self, context, flowFile):
         
         originalFileNameAtt = flowFile.getAttribute("filename")
@@ -61,14 +135,20 @@ class TableDetectionProcessor(FlowFileTransform):
 
         target_sizes = torch.tensor([image.shape[:2]])
         results = self.feature_extractor.post_process_object_detection(outputs, threshold=0.6, target_sizes=target_sizes)[0]
-        outputImage = self.plot_results(image, results['scores'], results['labels'], results['boxes'])
 
-        return FlowFileTransformResult(relationship = "annotated", contents = outputImage)
+        outputType = context.getProperty(self.outputType.name).getValue()
+        if outputType == 'coco':
+            cocoData = self.build_coco(originalFileNameAtt, results['labels'], results['boxes'])
+            cocoOutput = cocoData.to_json()
+            return FlowFileTransformResult(relationship = "coco", contents = cocoOutput)
+        else:
+            outputImage = self.plot_results(image, results['scores'], results['labels'], results['boxes'])
+            return FlowFileTransformResult(relationship = "annotated", contents = outputImage)
 
     def getPropertyDescriptors(self):
         return self.descriptors
     def getRelationships(self):
-        return [self.REL_ANNOTATED, self.REL_ORIGINAL]
+        return [self.REL_ANNOTATED, self.REL_COCO]
         
 COLORS = np.array(
     [

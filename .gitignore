@@ -1,3 +1,4 @@
 /.project
 /.env/
 .DS_Store
+dist
