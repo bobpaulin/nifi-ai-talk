@@ -1,0 +1,33 @@
+services:
+  #nifi-server:
+  #  build: ./nifi-server
+  #  container_name: nifi-1
+  #  hostname: nifi-1
+  #  ports:
+  #    - 8443:8443
+  #  environment:
+  #    SINGLE_USER_CREDENTIALS_USERNAME: admin
+  #    SINGLE_USER_CREDENTIALS_PASSWORD: administrator12
+  #  volumes:
+  #    - extensions:/opt/nifi/nifi-current/python_extensions
+  opensearch-node:
+    image: opensearchproject/opensearch:2.15.0
+    hostname: opensearch
+    ports:
+      - "9200:9200/tcp"
+    environment:
+      discovery.type: single-node
+      plugins.security.disabled: true
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: Datavolo1
+  python-runtime-extensions:
+    user: root
+    build: ./table-detection-processor
+    container_name: python-runtime-extensions
+    command:
+      - /bin/sh
+      - -c
+      - "cp /python_extensions; chown -R 1000:1000 /python_extensions"
+    volumes:
+      - extensions:/python_extensions
+volumes:
+  extensions:

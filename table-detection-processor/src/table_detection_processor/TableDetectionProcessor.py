@@ -119,18 +119,21 @@ class TableDetectionProcessor(FlowFileTransform):
             categories=categories,
             annotations=annotations
         )
+    def put_all_if_absent(self, dict1, dict2):
+        for key, value in dict2.items():
+            if key not in dict1:
+                dict1[key] = value
     def transform(self, context, flowFile):
         
         originalFileNameAtt = flowFile.getAttribute("filename")
+        originalAttributes = flowFile.getAttributes()
         
         image = cv2.imdecode(np.frombuffer(flowFile.getContentsAsBytes(), dtype=np.uint8), cv2.IMREAD_COLOR)
-        #image = Image.open(io.BytesIO(flowFile.getContentsAsBytes())).convert("RGB")
         max_size = {}
         max_size['max_height'] = 1000
         max_size['max_width'] = 1000
         encoding = self.feature_extractor(image, return_tensors="pt", size=max_size)
         
-        #with torch.no_grad():
         outputs = self.model(**encoding)
 
         target_sizes = torch.tensor([image.shape[:2]])
@@ -140,7 +143,9 @@ class TableDetectionProcessor(FlowFileTransform):
         if outputType == 'coco':
             cocoData = self.build_coco(originalFileNameAtt, results['labels'], results['boxes'])
             cocoOutput = cocoData.to_json()
-            return FlowFileTransformResult(relationship = "coco", contents = cocoOutput)
+            updateAttributes = {"mime.type": "application/json", "filename": originalFileNameAtt + ".json", "original-filename": originalFileNameAtt}
+            self.put_all_if_absent(updateAttributes, originalAttributes)
+            return FlowFileTransformResult(relationship = "coco", contents = cocoOutput, attributes = updateAttributes)
         else:
             outputImage = self.plot_results(image, results['scores'], results['labels'], results['boxes'])
             return FlowFileTransformResult(relationship = "annotated", contents = outputImage)
