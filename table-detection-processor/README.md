@@ -1,8 +1,5 @@
 # table-detection-processor
 
-[![PyPI - Version](https://img.shields.io/pypi/v/table-detection-processor.svg)](https://pypi.org/project/table-detection-processor)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/table-detection-processor.svg)](https://pypi.org/project/table-detection-processor)
-
 -----
 
 ## Table of Contents

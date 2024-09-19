@@ -119,10 +119,7 @@ class TableDetectionProcessor(FlowFileTransform):
             categories=categories,
             annotations=annotations
         )
-    def put_all_if_absent(self, dict1, dict2):
-        for key, value in dict2.items():
-            if key not in dict1:
-                dict1[key] = value
+
     def transform(self, context, flowFile):
         
         originalFileNameAtt = flowFile.getAttribute("filename")
@@ -133,18 +130,20 @@ class TableDetectionProcessor(FlowFileTransform):
         max_size['max_height'] = 1000
         max_size['max_width'] = 1000
         encoding = self.feature_extractor(image, return_tensors="pt", size=max_size)
+        self.logger.info('Encoding: ' + str(encoding))
         
         outputs = self.model(**encoding)
-
+        self.logger.info('Output: ' + str(outputs))
+        
         target_sizes = torch.tensor([image.shape[:2]])
         results = self.feature_extractor.post_process_object_detection(outputs, threshold=0.6, target_sizes=target_sizes)[0]
+        self.logger.info('Results: ' + str(results))
 
         outputType = context.getProperty(self.outputType.name).getValue()
         if outputType == 'coco':
             cocoData = self.build_coco(originalFileNameAtt, results['labels'], results['boxes'])
             cocoOutput = cocoData.to_json()
             updateAttributes = {"mime.type": "application/json", "filename": originalFileNameAtt + ".json", "original-filename": originalFileNameAtt}
-            self.put_all_if_absent(updateAttributes, originalAttributes)
             return FlowFileTransformResult(relationship = "coco", contents = cocoOutput, attributes = updateAttributes)
         else:
             outputImage = self.plot_results(image, results['scores'], results['labels'], results['boxes'])
