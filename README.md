@@ -50,9 +50,9 @@ Import from flows from
 
 flow_defs/InitElastic.json
 
-flow_defs/NifiJava.json
+flow_defs/ChicagoSalary.json
 
-flow_defs/TestTable.json
+flow_defs/DetectTable.json
 
 Build table_detection_processor NAR
 
@@ -72,5 +72,5 @@ Wait for Flow to startup and procesor to install.
 Copy chart file to /Users/bpaulin/table-img-in (or change this in the GetFile Processor
 
 ```
-git/nifi-ai-talk/apple-chart-100px-whitespace.png /Users/bpaulin/table-img-in
+cp git/nifi-ai-talk/apple-chart-100px-whitespace.png /Users/bob/table-img-in
 ```
